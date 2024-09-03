@@ -48,12 +48,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-
-
         db = FirebaseFirestore.getInstance();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+//        was the user warned
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        if (!sharedPreferences.getBoolean(DIALOG_SHOWN_KEY, false)) {
+            showUsernameImportanceDialog();
+        }
+
 
         inputFullName = findViewById(R.id.inputFullName);
         inputAge = findViewById(R.id.inputAge);
@@ -65,44 +68,22 @@ public class MainActivity extends AppCompatActivity {
         spinnerStatus = findViewById(R.id.spinnerStatus);
         buttonGetLocation = findViewById(R.id.buttonGetLocation);
         submitButton = findViewById(R.id.submitButton);
-        inputUsername = findViewById(R.id.inputUsername); // Add this line
+        inputUsername = findViewById(R.id.inputUsername);
 
 
 
-        // Load saved username
-        String savedUsername = sharedPreferences.getString(USERNAME_KEY, "");
-        inputUsername.setText(savedUsername);
-
-
-        if (!sharedPreferences.getBoolean(DIALOG_SHOWN_KEY, false)) {
-            showUsernameImportanceDialog();
-        }
-
-
-
-        // Save username as it's typed
-        inputUsername.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                saveUsername(s.toString());
-            }
-        });
+        // the last session inputs
+        initializeFields();
+        loadDataFromSharedPreferences();
 
 
 
 
+//      filling the box of cars ans status
         String[] statusOptions = {"Busy", "Free", "Out of Service"};
         ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, statusOptions);
         statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerStatus.setAdapter(statusAdapter);
-
-
 
         String[] carsOptions = {"BMW", "RANGE ROVER", "Ferrari"};
         ArrayAdapter<String> carsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, carsOptions);
@@ -123,33 +104,112 @@ public class MainActivity extends AppCompatActivity {
         });
 
         submitButton.setOnClickListener(v -> {
-            String fullName = inputFullName.getText().toString().trim();
-            String age = inputAge.getText().toString().trim();
-            String car = spinnerCars.getSelectedItem().toString().trim();
-            String description = inputDescription.getText().toString().trim();
-            String location = inputLocation.getText().toString().trim();
-            String phone = inputPhone.getText().toString().trim();
-            String status = spinnerStatus.getSelectedItem().toString();
-            String price = inputPrice.getText().toString().trim();
-            String username = inputUsername.getText().toString().trim();
-
-
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("full_name", fullName);
-            userData.put("age", Integer.parseInt(age));
-            userData.put("car", car);
-            userData.put("description", description);
-            userData.put("location", location);
-            userData.put("phone", phone);
-            userData.put("status", status);
-            userData.put("price", Double.parseDouble(price));
-            userData.put("username", username);
-            userData.put("isAvailable", true); // Set availability
-            uploadDataToFirestore(username,userData);
+            saveUserData();
         });
+
     }
 
+    private void initializeFields() {
+        inputFullName = findViewById(R.id.inputFullName);
+        inputAge = findViewById(R.id.inputAge);
+        spinnerCars = findViewById(R.id.inputCar);
+        inputDescription = findViewById(R.id.inputDescription);
+        inputLocation = findViewById(R.id.inputLocation);
+        inputPhone = findViewById(R.id.inputPhone);
+        inputPrice = findViewById(R.id.inputPrice);
+        spinnerStatus = findViewById(R.id.spinnerStatus);
+        buttonGetLocation = findViewById(R.id.buttonGetLocation);
+        submitButton = findViewById(R.id.submitButton);
+        inputUsername = findViewById(R.id.inputUsername);
 
+        // Initialize Spinner adapters
+        String[] statusOptions = {"Busy", "Free", "Out of Service"};
+        ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, statusOptions);
+        statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatus.setAdapter(statusAdapter);
+
+        String[] carsOptions = {"BMW", "RANGE ROVER", "Ferrari"};
+        ArrayAdapter<String> carsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, carsOptions);
+        carsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCars.setAdapter(carsAdapter);
+    }
+
+    private void loadDataFromSharedPreferences() {
+
+        String[] statusOptions = {"Busy", "Free", "Out of Service"};
+        ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, statusOptions);
+        statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatus.setAdapter(statusAdapter);
+
+        String[] carsOptions = {"BMW", "RANGE ROVER", "Ferrari"};
+        ArrayAdapter<String> carsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, carsOptions);
+        carsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCars.setAdapter(carsAdapter);
+
+
+
+        inputFullName.setText(sharedPreferences.getString("full_name", ""));
+        inputAge.setText(sharedPreferences.getString("age", ""));
+        inputDescription.setText(sharedPreferences.getString("description", ""));
+        inputLocation.setText(sharedPreferences.getString("location", ""));
+        inputPhone.setText(sharedPreferences.getString("phone", ""));
+        inputPrice.setText(sharedPreferences.getString("price", ""));
+        inputUsername.setText(sharedPreferences.getString("username", ""));
+
+        // Load Spinner values
+        String savedCar = sharedPreferences.getString("car", "");
+        if (!savedCar.isEmpty()) {
+            int carPosition = carsAdapter.getPosition(savedCar);
+            spinnerCars.setSelection(carPosition);
+        }
+
+        String savedStatus = sharedPreferences.getString("status", "");
+        if (!savedStatus.isEmpty()) {
+            int statusPosition = statusAdapter.getPosition(savedStatus);
+            spinnerStatus.setSelection(statusPosition);
+        }
+    }
+
+    private void saveUserData() {
+        String fullName = inputFullName.getText().toString().trim();
+        String age = inputAge.getText().toString().trim();
+        String car = spinnerCars.getSelectedItem().toString().trim();
+        String description = inputDescription.getText().toString().trim();
+        String location = inputLocation.getText().toString().trim();
+        String phone = inputPhone.getText().toString().trim();
+        String status = spinnerStatus.getSelectedItem().toString();
+        String price = inputPrice.getText().toString().trim();
+        String username = inputUsername.getText().toString().trim();
+
+        // Save each input to SharedPreferences
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("full_name", fullName);
+        editor.putString("age", age);
+        editor.putString("car", car);
+        editor.putString("description", description);
+        editor.putString("location", location);
+        editor.putString("phone", phone);
+        editor.putString("status", status);
+        editor.putString("price", price);
+        editor.putString("username", username);
+        editor.apply();
+
+        // Prepare userData map
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("full_name", fullName);
+        userData.put("age", Integer.parseInt(age));
+        userData.put("car", car);
+        userData.put("description", description);
+        userData.put("location", location);
+        userData.put("phone", phone);
+        userData.put("status", status);
+        userData.put("price", Double.parseDouble(price));
+        userData.put("username", username);
+        userData.put("isAvailable", true);
+
+        // Upload data to Firestore
+        uploadDataToFirestore(username, userData);
+    }
 
     private void showUsernameImportanceDialog() {
         new AlertDialog.Builder(this)
@@ -162,12 +222,6 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setCancelable(false)
                 .show();
-    }
-
-    private void saveUsername(String username) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(USERNAME_KEY, username);
-        editor.apply();
     }
 
     private void fetchLocation() {
