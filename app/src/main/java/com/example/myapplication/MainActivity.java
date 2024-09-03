@@ -134,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
         spinnerCars.setAdapter(carsAdapter);
     }
 
+
     private void loadDataFromSharedPreferences() {
 
         String[] statusOptions = {"Busy", "Free", "Out of Service"};
@@ -146,25 +147,24 @@ public class MainActivity extends AppCompatActivity {
         carsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCars.setAdapter(carsAdapter);
 
+        // Use ternary operations to handle null values
+        inputFullName.setText(sharedPreferences.getString("full_name", "") != null ? sharedPreferences.getString("full_name", "") : "");
+        inputAge.setText(sharedPreferences.getString("age", "") != null ? sharedPreferences.getString("age", "") : "");
+        inputDescription.setText(sharedPreferences.getString("description", "") != null ? sharedPreferences.getString("description", "") : "");
+        inputLocation.setText(sharedPreferences.getString("location", "") != null ? sharedPreferences.getString("location", "") : "");
+        inputPhone.setText(sharedPreferences.getString("phone", "") != null ? sharedPreferences.getString("phone", "") : "");
+        inputPrice.setText(sharedPreferences.getString("price", "") != null ? sharedPreferences.getString("price", "") : "");
+        inputUsername.setText(sharedPreferences.getString("username", "") != null ? sharedPreferences.getString("username", "") : "");
 
-
-        inputFullName.setText(sharedPreferences.getString("full_name", ""));
-        inputAge.setText(sharedPreferences.getString("age", ""));
-        inputDescription.setText(sharedPreferences.getString("description", ""));
-        inputLocation.setText(sharedPreferences.getString("location", ""));
-        inputPhone.setText(sharedPreferences.getString("phone", ""));
-        inputPrice.setText(sharedPreferences.getString("price", ""));
-        inputUsername.setText(sharedPreferences.getString("username", ""));
-
-        // Load Spinner values
+        // Load Spinner values with ternary operations
         String savedCar = sharedPreferences.getString("car", "");
-        if (!savedCar.isEmpty()) {
+        if (savedCar != null && !savedCar.isEmpty()) {
             int carPosition = carsAdapter.getPosition(savedCar);
             spinnerCars.setSelection(carPosition);
         }
 
         String savedStatus = sharedPreferences.getString("status", "");
-        if (!savedStatus.isEmpty()) {
+        if (savedStatus != null && !savedStatus.isEmpty()) {
             int statusPosition = statusAdapter.getPosition(savedStatus);
             spinnerStatus.setSelection(statusPosition);
         }
