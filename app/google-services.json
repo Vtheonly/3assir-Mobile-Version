@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "226936149096",
+    "project_id": "assir-5fb0c",
+    "storage_bucket": "assir-5fb0c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226936149096:android:2ee8dbded67612a4af97dd",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV2S4GdYr0f28uzt-G9AfP2ShPkfA1dCU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
