@@ -9,6 +9,7 @@ import android.location.Geocoder;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -41,7 +42,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "MyAppPrefs";
     private static final String USERNAME_KEY = "username";
     private static final String DIALOG_SHOWN_KEY = "username_dialog_shown";
-
+    String longitude ="";
+    String latitude = "";
 
 
     @Override
@@ -49,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         db = FirebaseFirestore.getInstance();
+//        initLongitudeAndLatitude();
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
 //        was the user warned
@@ -85,11 +89,11 @@ public class MainActivity extends AppCompatActivity {
         statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerStatus.setAdapter(statusAdapter);
 
-        String[] carsOptions = {"BMW", "RANGE ROVER", "Ferrari"};
-        ArrayAdapter<String> carsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, carsOptions);
-        carsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCars.setAdapter(carsAdapter);
 
+        // reads from strings
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.common_cars_in_Algeria, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCars.setAdapter(adapter);
 
         buttonGetLocation.setOnClickListener(v -> {
 //            ask for permission else (permission given) go fetch
@@ -104,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         submitButton.setOnClickListener(v -> {
+            initLongitudeAndLatitude();
+            fetchLocation();
             saveUserData();
         });
 
@@ -128,12 +134,18 @@ public class MainActivity extends AppCompatActivity {
         statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerStatus.setAdapter(statusAdapter);
 
-        String[] carsOptions = {"BMW", "RANGE ROVER", "Ferrari"};
-        ArrayAdapter<String> carsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, carsOptions);
-        carsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCars.setAdapter(carsAdapter);
-    }
 
+
+
+        // reads from strings
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.common_cars_in_Algeria, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCars.setAdapter(adapter);
+
+
+        initLongitudeAndLatitude();
+
+    }
 
     private void loadDataFromSharedPreferences() {
 
@@ -170,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     private void saveUserData() {
         String fullName = inputFullName.getText().toString().trim();
         String age = inputAge.getText().toString().trim();
@@ -194,22 +207,43 @@ public class MainActivity extends AppCompatActivity {
         editor.putString("username", username);
         editor.apply();
 
-        // Prepare userData map
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("full_name", fullName);
-        userData.put("age", Integer.parseInt(age));
-        userData.put("car", car);
-        userData.put("description", description);
-        userData.put("location", location);
-        userData.put("phone", phone);
-        userData.put("status", status);
-        userData.put("price", Double.parseDouble(price));
-        userData.put("username", username);
-        userData.put("isAvailable", true);
 
-        // Upload data to Firestore
-        uploadDataToFirestore(username, userData);
+        new Thread(() -> {
+            long startTime = System.currentTimeMillis();
+            while (longitude.isEmpty() || latitude.isEmpty()) {
+                if (System.currentTimeMillis() - startTime > 30000) { // 30 seconds timeout
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "Timeout while waiting for location. Please try again.", Toast.LENGTH_LONG).show();
+                    });
+                    return;
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            runOnUiThread(() -> {
+                Map<String, Object> userData = new HashMap<>();
+                userData.put("full_name", fullName);
+                userData.put("age", Integer.parseInt(age));
+                userData.put("car", car);
+                userData.put("description", description);
+                userData.put("location", location);
+                userData.put("longitude", longitude);
+                userData.put("latitude", latitude);
+                userData.put("phone", phone);
+                userData.put("status", status);
+                userData.put("price", Double.parseDouble(price));
+                userData.put("username", username);
+                userData.put("isAvailable", true);
+
+                uploadDataToFirestore(username, userData);
+            });
+        }).start();
     }
+
 
     private void showUsernameImportanceDialog() {
         new AlertDialog.Builder(this)
@@ -243,6 +277,9 @@ public class MainActivity extends AppCompatActivity {
 
                                 // Fill the location EditText with the fetched location
                                 inputLocation.setText(fullAddress);
+
+                                initLongitudeAndLatitude();
+
                             } else {
                                 Toast.makeText(MainActivity.this, "Unable to determine location.", Toast.LENGTH_SHORT).show();
                             }
@@ -255,6 +292,34 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
     }
+
+
+    private void initLongitudeAndLatitude() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Request permissions if not granted
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location != null) {
+                        longitude = String.valueOf(location.getLongitude());
+                        latitude = String.valueOf(location.getLatitude());
+                        // You can add a log or toast here to confirm the values are set
+                        Log.d("Location", "Latitude: " + latitude + ", Longitude: " + longitude);
+                    } else {
+                        Toast.makeText(this, "Unable to get location", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error getting location: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
 
     private void uploadDataToFirestore(String username, Map<String, Object> userData) {
         db.collection("allUsers").document(username)

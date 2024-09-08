@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">3assir</string>
+    <string-array name="common_cars_in_Algeria">
+        <item>Dacia Sandero</item>
+        <item>Renault Clio</item>
+        <item>Hyundai i10</item>
+        <item>Kia Picanto</item>
+        <item>Toyota Yaris</item>
+        <item>Suzuki Swift</item>
+        <item>Volkswagen Golf</item>
+        <item>Renault Symbol</item>
+        <item>Peugeot 208</item>
+        <item>Ford Fiesta</item>
+        <item>Dacia Logan</item>
+        <item>Nissan Sunny</item>
+        <item>Hyundai Accent</item>
+        <item>Toyota Corolla</item>
+        <item>Chevrolet Spark</item>
+        <item>Volkswagen Polo</item>
+        <item>Chery QQ</item>
+        <item>Citroën C3</item>
+        <item>Skoda Fabia</item>
+        <item>Fiat Punto</item>
+    </string-array>
 </resources>
